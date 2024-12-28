@@ -24,9 +24,7 @@ export class Player extends Container{
     public speed: number = 5;
 
     constructor(x: number, y: number, w: number, h: number){
-        super({
-            x, y,
-        });
+        super({x, y,});
 
         this.centerOffset = new Point(w/2, h/2);
 
@@ -57,46 +55,8 @@ export class Player extends Container{
         this._controls[e.code] = false;
     }
 
-    public onTick(world: Container, deltaTime: number): void{
-        const change: Point = new Point(0, 0)
-
-        // Controls are inverted so the world moves around player
-        if(this._controls['KeyW'])
-            change.y += this.speed
-        if(this._controls['KeyA'])
-            change.x += this.speed
-        if(this._controls['KeyS'])
-            change.y -= this.speed
-        if(this._controls['KeyD'])
-            change.x -= this.speed
-
-        change.normalize();
-
-        // If edge of world at edge of screen flip x/y and move player
-        
-        let camWithinBounds: {[key: string]: boolean} = {
-            left: world.x - world.width / 4 < 0,
-            right: world.x + world.width / 4 > 0,
-            up: world.y - world.height / 4 < 0,
-            down: world.y + world.height / 4 > 0 
-        }
-
-        // Need to move world rather than player
-        // So the player is constantly at the center of screen
-        
-        // Horizontal Movement
-        if(!camWithinBounds.left) this._boundMoveLeft(world, change, deltaTime);
-        else if(!camWithinBounds.right) this._boundMoveRight(world, change, deltaTime)
-        else world.x += change.x * deltaTime;
-
-        // Vertical Movement
-        if(!camWithinBounds.up) this._boundMoveUp(world, change, deltaTime);
-        else if(!camWithinBounds.down) this._boundMoveDown(world, change, deltaTime);
-        else world.y += change.y * deltaTime;
-
-    }
-
     // MOVING NEAR A BOUNDARY ------------------------------------------------------
+    // We flip the movement axis to move player instead of the world
 
     private _boundMoveLeft(world: Container, change: Point, delta: number){
         // Player is at edge of world, cannot move left
@@ -137,4 +97,40 @@ export class Player extends Container{
             this.y += (change.y * Player.AXIS_FLIP) * delta
         else world.y += change.y * delta; 
     }
+
+    public onTick(world: Container, deltaTime: number): void{
+        const change: Point = new Point(0, 0)
+
+        // Controls are inverted so the world moves around player
+        if(this._controls['KeyW'])
+            change.y += this.speed
+        if(this._controls['KeyA'])
+            change.x += this.speed
+        if(this._controls['KeyS'])
+            change.y -= this.speed
+        if(this._controls['KeyD'])
+            change.x -= this.speed
+
+        change.normalize();
+        
+        // Is camera hitting boundary?
+        let camWithinBounds: {[key: string]: boolean} = {
+            left: world.x - world.width / 4 < 0,
+            right: world.x + world.width / 4 > 0,
+            up: world.y - world.height / 4 < 0,
+            down: world.y + world.height / 4 > 0 
+        }
+
+        // Horizontal Movement
+        if(!camWithinBounds.left) this._boundMoveLeft(world, change, deltaTime);
+        else if(!camWithinBounds.right) this._boundMoveRight(world, change, deltaTime)
+        else world.x += change.x * deltaTime;
+
+        // Vertical Movement
+        if(!camWithinBounds.up) this._boundMoveUp(world, change, deltaTime);
+        else if(!camWithinBounds.down) this._boundMoveDown(world, change, deltaTime);
+        else world.y += change.y * deltaTime;
+
+    }
+
 }
