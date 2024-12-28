@@ -45,23 +45,30 @@ class Shooter{
         const cont = new Container()
 
         // Background
-        const background = new TilingSprite(
-            Assets.get("background"),
-            this.app.screen.width * 2,
-            this.app.screen.height * 2
-        );
+        const background = new TilingSprite({
+            texture: Assets.get("background"),
+            width: this.app.screen.width * 2,
+            height: this.app.screen.height * 2
+        });
+        background.anchor.set(0.5);
+        background.x = this.app.screen.width / 2;
+        background.y = this.app.screen.height / 2;
         cont.addChild(background); 
 
         return cont
     }
 
     async startGame(): Promise<void>{
+        // Create player
         const player = new Player(
             this.app.screen.width / 2, this.app.screen.height / 2,
-            100, 100
+            50, 100
         );
 
         this.app.stage.addChild(player);
+        this.app.ticker.add(()=>player.onTick(this.world, this.app.ticker.deltaTime), player)
+
+        this.app.ticker.start();
     }
 }
 
