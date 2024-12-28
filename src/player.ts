@@ -8,9 +8,10 @@ import { Container, Graphics, Rectangle } from "pixi.js";
 import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
+import { Gun } from "./gun";
+
 export class Player extends Container{
     private static AXIS_FLIP: number = -1;
-
 
     private _cursor: Graphics;
     private _controls: {[key: string]: boolean} = {
@@ -19,28 +20,36 @@ export class Player extends Container{
         KeyS: false,
         KeyD: false,
     }
+    private _centerOffset: Point
     
-    public centerOffset: Point
     public speed: number = 5;
+    public gun: Gun
 
     constructor(x: number, y: number, w: number, h: number){
         super({x, y,});
 
-        this.centerOffset = new Point(w/2, h/2);
+        this._centerOffset = new Point(w/2, h/2);
 
         // Create cursor
         this._cursor = new Graphics();
 
         // Draw player
         this._cursor.rect(
-            0 - this.centerOffset.x,
-            0 - this.centerOffset.y,
+            0 - this._centerOffset.x,
+            0 - this._centerOffset.y,
             w, h
         );
         this._cursor.fill("#94e366");
 
         // Add graphics to container
         this.addChild(this._cursor);
+
+        // Add gun to player
+        this.gun = new Gun(
+            0 + w * 2, 0, 50, 20
+        )
+        this.addChild(this.gun);
+        console.log(this.gun);
 
         // Event listeners for controls
         document.addEventListener('keydown', this._onKeyDown.bind(this))
@@ -57,10 +66,9 @@ export class Player extends Container{
 
     // MOVING NEAR A BOUNDARY ------------------------------------------------------
     // We flip the movement axis to move player instead of the world
-
     private _boundMoveLeft(world: Container, change: Point, delta: number){
         // Player is at edge of world, cannot move left
-        if(change.x > 0 && this.x - this.centerOffset.x <= 0) return
+        if(change.x > 0 && this.x - this._centerOffset.x <= 0) return
         
         // Is player moving left OR is player moving back to center?
         if(change.x > 0 && this.x > 0 || change.x < 0 && this.x  < world.width / 4)
@@ -70,7 +78,7 @@ export class Player extends Container{
 
     private _boundMoveRight(world: Container, change: Point, delta: number){
         // Player is at edge of world, cannot move right
-        if(change.x < 0 && this.x + this.centerOffset.x >= world.width / 2) return
+        if(change.x < 0 && this.x + this._centerOffset.x >= world.width / 2) return
 
         // Is player moving right OR is player moving back to center?
         if(change.x < 0 || change.x > 0 && this.x > world.width / 4)
@@ -80,7 +88,7 @@ export class Player extends Container{
 
     private _boundMoveUp(world: Container, change: Point, delta: number){
         // Player is at edge of world, cannot move up
-        if(change.y > 0 && this.y - this.centerOffset.y <= 0) return
+        if(change.y > 0 && this.y - this._centerOffset.y <= 0) return
 
         // Is player moving up OR is player moving back to center?
         if(change.y > 0 || change.y < 0 && this.y < world.height / 4)
@@ -90,7 +98,7 @@ export class Player extends Container{
 
     private _boundMoveDown(world: Container, change: Point, delta: number){
         // Player is at edge of world, cannot move down
-        if(change.y < 0 && this.y + this.centerOffset.y >= world.height / 2) return;
+        if(change.y < 0 && this.y + this._centerOffset.y >= world.height / 2) return;
 
         // Is player moving down OR is player moving back to center?
         if(change.y < 0 || change.y > 0 && this.y > world.height / 4)
@@ -98,6 +106,7 @@ export class Player extends Container{
         else world.y += change.y * delta; 
     }
 
+    // TICKER FUNCTION --------------------------------------------------------------
     public onTick(world: Container, deltaTime: number): void{
         const change: Point = new Point(0, 0)
 
