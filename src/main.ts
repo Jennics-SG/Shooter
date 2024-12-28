@@ -62,7 +62,7 @@ class Shooter{
         // Create player
         const player = new Player(
             this.app.screen.width / 2, this.app.screen.height / 2,
-            50, 100
+            50, 100, this.world
         );
 
         this.app.stage.addChild(player);

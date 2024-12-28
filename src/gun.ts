@@ -6,16 +6,25 @@
 
 import { Graphics, Container, Point } from "pixi.js";
 
+import { Bullet } from "./bullet";
+
 export class Gun extends Container{
-    private _centerOffset: Point
     private _cursor: Graphics
+
+    private _offset: number
+
+    public bulletContainer: Container;
+    public bullets: Array<Bullet>
 
     constructor(x: number, y: number, w: number, h: number){
         super({x:0, y:0});
 
+        this._offset = x;
+
         this.pivot = 0.5;
 
-        this._centerOffset = new Point(w/2, h/2);
+        this.bulletContainer = new Container();
+        this.bullets = new Array();
 
         // Create cursor
         this._cursor = new Graphics();
@@ -37,9 +46,34 @@ export class Gun extends Container{
     // Update rotation of the gun
     private _updateRotation(e: MouseEvent): void{
         // We use global position because its less jittery
-        const player: Point = this.toGlobal(this.position)
-        const distance: Point = new Point(e.x - player.x, e.y - player.y);
+        const playerPos: Point = this.toGlobal(this.position)
+        const distance: Point = new Point(e.x - playerPos.x, e.y - playerPos.y);
 
         this.rotation = Math.atan2(distance.y, distance.x);
+    }
+
+    public spawnBullet(e: MouseEvent, globalPos: Point): void{
+        if(this.destroyed) return;
+    
+        // Get the current position of the gun by calculating the cosin
+        const gunPos = new Point(
+            globalPos.x + this._offset * Math.cos(this.rotation),
+            globalPos.y + this._offset * Math.sin(this.rotation)
+        );
+
+        const bullet = new Bullet(
+            gunPos.x,
+            gunPos.y,
+            20, 20, this.rotation
+        );
+        this.bulletContainer.addChild(bullet);
+        this.bullets.push(bullet)
+
+        // Destroy bullet in 1 second 
+        setTimeout(()=> {
+            bullet.destroy();
+            this.bullets.shift()
+        }, Bullet.LIFE_TIMER)
+
     }
 }

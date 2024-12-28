@@ -9,6 +9,7 @@ import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
 import { Gun } from "./gun";
+import { Bullet } from "./bullet";
 
 export class Player extends Container{
     private static AXIS_FLIP: number = -1;
@@ -25,7 +26,7 @@ export class Player extends Container{
     public speed: number = 5;
     public gun: Gun
 
-    constructor(x: number, y: number, w: number, h: number){
+    constructor(x: number, y: number, w: number, h: number, world: Container){
         super({x, y,});
 
         this._centerOffset = new Point(w/2, h/2);
@@ -46,14 +47,19 @@ export class Player extends Container{
 
         // Add gun to player
         this.gun = new Gun(
-            0 + w * 2, 0, 50, 20
+            0 + 100, 0, 50, 20
         )
         this.addChild(this.gun);
-        console.log(this.gun);
+        world.addChild(this.gun.bulletContainer);
 
         // Event listeners for controls
         document.addEventListener('keydown', this._onKeyDown.bind(this))
         document.addEventListener('keyup', this._onKeyUp.bind(this))
+
+        // Firing gun event listener
+        document.addEventListener('mousedown', (e)=> 
+            this.gun.spawnBullet.bind(this.gun)(e, world.toLocal(this.position))
+        );
     }
 
     private _onKeyDown(e: KeyboardEvent): void{
@@ -140,6 +146,11 @@ export class Player extends Container{
         else if(!camWithinBounds.down) this._boundMoveDown(world, change, deltaTime);
         else world.y += change.y * deltaTime;
 
+        // Execute onTick for bullets
+        for(let bullet of this.gun.bullets){
+            bullet.onTick.bind(bullet)(deltaTime);
+            
+        }
     }
 
 }
