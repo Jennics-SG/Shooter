@@ -6,12 +6,16 @@
 
 import { Container, Graphics } from "pixi.js";
 
+import { HitBox } from "../collision";
+
 import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
 export class Bullet extends Container{
     public static LIFE_TIMER = 5000;
     private static SPEED = 10;
+
+    public hitbox: HitBox;
 
     private _cursor: Graphics;
 
@@ -30,49 +34,18 @@ export class Bullet extends Container{
         );
         this._cursor.fill("#ffd000");
 
+        this.hitbox = {
+            parent: this,
+            width: w,
+            height: h
+        };
+
         this.addChild(this._cursor);
         this.rotation = rot;
     }
 
     public setTimer(timer: number){
         this.timer = timer
-    }
-
-    public isColliding(obj: Container): boolean{
-        if(this.destroyed || obj.destroyed) return false;
-
-        const aPos = this.getGlobalPosition();
-        const bPos = obj.getGlobalPosition();
-
-        const a = {
-            ...aPos,
-            w: this.width,
-            h: this.height
-        }
-        const b = {
-            ...bPos,
-            w: obj.width,
-            h: obj.height
-        }
-
-        if(
-            this.distanceNumFromPoint(bPos) >= b.w * 1.5
-        ) return false;
-
-        return a.x < b.x + b.w
-            && a.x + a.w > b.x
-            && a.y < b.y + b.h
-            && a.y + a.h > b.h
-
-    }
-
-    public distanceNumFromPoint(pos: Point): number{
-        const myPos = this.getGlobalPosition();
-
-        // Pythag init
-        const a = pos.x - myPos.x;
-        const b = pos.y - myPos.y;
-        return Math.sqrt(a**2 + b**2)
     }
 
     public onTick(deltaTime: number){

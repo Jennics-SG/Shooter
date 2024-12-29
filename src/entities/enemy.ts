@@ -7,21 +7,41 @@
 import { Container, Graphics } from "pixi.js";
 import { Point } from "@pixi/math";
 import '@pixi/math-extras'
+
 import { Player } from "./player";
+import { HitBox } from "../collision";
+
+interface EnemyOptions{
+    stopRange?: number,
+    health?: number,
+    speed?: number,
+}
 
 export class Enemy extends Container{
 
     private _speed: number = 5;
 
     private _cursor: Graphics
-    private _stopRange: number
-    private _health: number
+    private _stopRange: number = 200;
+    private _health: number = 50;
 
-    constructor(x: number, y: number, w: number, h: number, stopRange: number, health: number){
+    public hitbox: HitBox
+
+    constructor(x: number, y: number, w: number, h: number, ops?: EnemyOptions){
         super({x, y});
 
-        this._stopRange = stopRange;
-        this._health = health;
+        this.hitbox = {
+            parent: this,
+            width: w,
+            height: h
+        };
+
+        // Overide defaults
+        if(ops){
+            this._speed = ops.speed ? ops.speed : this._speed;
+            this._stopRange = ops.stopRange ? ops.stopRange : this._stopRange;
+            this._health = ops.health ? ops.health : this._health;
+        }
 
         this._cursor = new Graphics();
         this._cursor.rect(

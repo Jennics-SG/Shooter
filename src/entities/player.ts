@@ -8,6 +8,7 @@ import { Container, Graphics } from "pixi.js";
 import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
+import { HitBox } from "../collision";
 import { Gun } from "./gun";
 import { MainWorld } from "../levels/MainWorld";
 
@@ -25,11 +26,22 @@ export class Player extends Container{
     
     public speed: number = 5;
     public gun: Gun
+    public hitbox: HitBox
+    public health: number;
+    public invulnerable: boolean = false;
 
     constructor(x: number, y: number, w: number, h: number, world: MainWorld){
         super({x, y,});
 
+        this.health = 100;
+
         this._centerOffset = new Point(w/2, h/2);
+
+        this.hitbox = {
+            parent: this,
+            width: w,
+            height: h
+        }
 
         // Create cursor
         this._cursor = new Graphics();
@@ -68,6 +80,15 @@ export class Player extends Container{
 
     private _onKeyUp(e: KeyboardEvent): void{
         this._controls[e.code] = false;
+    }
+
+    public takeDamage(amount: number): void{
+        if(this.invulnerable) return;
+        this.health -= amount;
+        this.alpha = 0.5
+        this.invulnerable = true;
+        setTimeout(()=> this.alpha = 1, 100);
+        setTimeout(()=> this.invulnerable = false, 1000);
     }
 
     // MOVING NEAR A BOUNDARY ------------------------------------------------------

@@ -39106,6 +39106,31 @@ init_eventemitter3();
 var import_earcut2 = __toESM(require_earcut(), 1);
 extensions.add(browserExt, webworkerExt);
 
+// src/collision.ts
+var Collisions = class _Collisions {
+  static isColliding(aCont, bCont) {
+    if (aCont.parent.destroyed || bCont.parent.destroyed) return false;
+    const aPos = aCont.parent.getGlobalPosition();
+    const bPos = bCont.parent.getGlobalPosition();
+    const a2 = {
+      ...aPos,
+      w: aCont.width,
+      h: aCont.height
+    };
+    const b2 = {
+      ...bPos,
+      w: bCont.width,
+      h: bCont.height
+    };
+    if (_Collisions.distanceBetweenPoints(aPos, bPos) >= b2.w * 1.5) return false;
+    return a2.x < b2.x + b2.w && a2.x + a2.w > b2.x && a2.y < b2.y + b2.h && a2.y + a2.h > b2.h;
+  }
+  static distanceBetweenPoints(a2, b2) {
+    const d2 = { x: a2.x - b2.x, y: a2.y - b2.y };
+    return Math.sqrt(d2.x ** 2 + d2.y ** 2);
+  }
+};
+
 // node_modules/@pixi/math/lib/const.mjs
 var PI_22 = Math.PI * 2;
 var RAD_TO_DEG2 = 180 / Math.PI;
@@ -48898,34 +48923,16 @@ var Bullet = class _Bullet extends Container {
       h2
     );
     this._cursor.fill("#ffd000");
+    this.hitbox = {
+      parent: this,
+      width: w2,
+      height: h2
+    };
     this.addChild(this._cursor);
     this.rotation = rot;
   }
   setTimer(timer) {
     this.timer = timer;
-  }
-  isColliding(obj) {
-    if (this.destroyed || obj.destroyed) return false;
-    const aPos = this.getGlobalPosition();
-    const bPos = obj.getGlobalPosition();
-    const a2 = {
-      ...aPos,
-      w: this.width,
-      h: this.height
-    };
-    const b2 = {
-      ...bPos,
-      w: obj.width,
-      h: obj.height
-    };
-    if (this.distanceNumFromPoint(bPos) >= b2.w * 1.5) return false;
-    return a2.x < b2.x + b2.w && a2.x + a2.w > b2.x && a2.y < b2.y + b2.h && a2.y + a2.h > b2.h;
-  }
-  distanceNumFromPoint(pos) {
-    const myPos = this.getGlobalPosition();
-    const a2 = pos.x - myPos.x;
-    const b2 = pos.y - myPos.y;
-    return Math.sqrt(a2 ** 2 + b2 ** 2);
   }
   onTick(deltaTime) {
     if (this.destroyed) return;
@@ -49003,7 +49010,14 @@ var Player = class _Player extends Container {
       KeyD: false
     };
     this.speed = 5;
+    this.invulnerable = false;
+    this.health = 100;
     this._centerOffset = new Point2(w2 / 2, h2 / 2);
+    this.hitbox = {
+      parent: this,
+      width: w2,
+      height: h2
+    };
     this._cursor = new Graphics();
     this._cursor.rect(
       0 - this._centerOffset.x,
@@ -49036,6 +49050,14 @@ var Player = class _Player extends Container {
   }
   _onKeyUp(e2) {
     this._controls[e2.code] = false;
+  }
+  takeDamage(amount) {
+    if (this.invulnerable) return;
+    this.health -= amount;
+    this.alpha = 0.5;
+    this.invulnerable = true;
+    setTimeout(() => this.alpha = 1, 100);
+    setTimeout(() => this.invulnerable = false, 1e3);
   }
   // MOVING NEAR A BOUNDARY ------------------------------------------------------
   // We flip the movement axis to move player instead of the world
@@ -49098,11 +49120,21 @@ var Player = class _Player extends Container {
 
 // src/entities/enemy.ts
 var Enemy = class extends Container {
-  constructor(x2, y2, w2, h2, stopRange, health) {
+  constructor(x2, y2, w2, h2, ops) {
     super({ x: x2, y: y2 });
     this._speed = 5;
-    this._stopRange = stopRange;
-    this._health = health;
+    this._stopRange = 200;
+    this._health = 50;
+    this.hitbox = {
+      parent: this,
+      width: w2,
+      height: h2
+    };
+    if (ops) {
+      this._speed = ops.speed ? ops.speed : this._speed;
+      this._stopRange = ops.stopRange ? ops.stopRange : this._stopRange;
+      this._health = ops.health ? ops.health : this._health;
+    }
     this._cursor = new Graphics();
     this._cursor.rect(
       0 - w2 / 2,
@@ -49163,7 +49195,6 @@ var Enemy = class extends Container {
 
 // src/levels/MainWorld.ts
 var MainWorld = class extends Container {
-  // X / Y should be center of the screen
   constructor(x2, y2, w2, h2, parent) {
     super({
       x: 0,
@@ -49205,7 +49236,11 @@ var MainWorld = class extends Container {
       this
     );
     this.addChild(this._player);
-    const enemy = new Enemy(0, 0, 100, 100, 200, 100);
+    const enemy = new Enemy(0, 0, 100, 100, {
+      stopRange: 300,
+      speed: 5,
+      health: 100
+    });
     this._environment.addChild(enemy);
     this._enemies.push(enemy);
     this._initialiseTicker();
@@ -49224,10 +49259,13 @@ var MainWorld = class extends Container {
       enemy.onTick(this._player, deltaTime);
       for (const bullet of this._player.gun.bullets) {
         if (bullet.destroyed) continue;
-        if (!bullet.isColliding(enemy)) continue;
+        if (!Collisions.isColliding(bullet.hitbox, enemy.hitbox)) continue;
         bullet.delete(bullet.timer);
         enemy.takeDamage(10);
       }
+      console.log(Collisions.isColliding(enemy.hitbox, this._player.hitbox));
+      if (!Collisions.isColliding(enemy.hitbox, this._player.hitbox)) continue;
+      this._player.takeDamage(10);
     }
   }
   addToProjectiles(proj) {

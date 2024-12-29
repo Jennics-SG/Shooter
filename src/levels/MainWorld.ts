@@ -6,6 +6,7 @@
 
 import { Container, Ticker, Assets, TilingSprite } from "pixi.js";
 
+import { Collisions } from "../collision";
 import { Player } from "../entities/player";
 import { Enemy } from "../entities/enemy";
 
@@ -27,7 +28,6 @@ export class MainWorld extends Container{
 
     public ticker: Ticker
 
-    // X / Y should be center of the screen
     constructor(x: number, y: number, w: number, h: number, parent: StateManager){
         super({
             x: 0, y: 0, width: w, height: h
@@ -76,7 +76,12 @@ export class MainWorld extends Container{
         )
         this.addChild(this._player);
 
-        const enemy = new Enemy(0, 0, 100, 100, 200, 100)
+        const enemy = new Enemy(0, 0, 100, 100, {
+            stopRange: 300,
+            speed: 5,
+            health: 100
+        });
+
         this._environment.addChild(enemy)
 
         this._enemies.push(enemy);
@@ -103,11 +108,15 @@ export class MainWorld extends Container{
             enemy.onTick(this._player, deltaTime);
             for(const bullet of this._player.gun.bullets){
                 if(bullet.destroyed) continue;
-                if(!bullet.isColliding(enemy)) continue;
-
+                
+                if(!Collisions.isColliding(bullet.hitbox, enemy.hitbox)) continue;
                 bullet.delete(bullet.timer);
                 enemy.takeDamage(10);
             }
+            console.log(Collisions.isColliding(enemy.hitbox, this._player.hitbox));
+            if(!Collisions.isColliding(enemy.hitbox, this._player.hitbox)) continue;
+
+            this._player.takeDamage(10);
         }
     }
 
