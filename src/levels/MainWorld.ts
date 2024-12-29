@@ -101,7 +101,13 @@ export class MainWorld extends Container{
         // Run ticker for all enemies
         for(let enemy of this._enemies){
             enemy.onTick(this._player, deltaTime);
-            
+            for(const bullet of this._player.gun.bullets){
+                if(bullet.destroyed) continue;
+                if(!bullet.isColliding(enemy)) continue;
+
+                bullet.delete(bullet.timer);
+                enemy.takeDamage(10);
+            }
         }
     }
 

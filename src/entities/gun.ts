@@ -21,7 +21,6 @@ export class Gun extends Container{
         super({x:0, y:0});
 
         this._offset = x;
-
         this.pivot = 0.5;
 
         this.bulletContainer = new Container();
@@ -32,8 +31,8 @@ export class Gun extends Container{
 
         // Draw gun
         this._cursor.rect(
-            x,
-            y,
+            x - w/2,
+            y - h/2,
             w, h
         );
         this._cursor.fill("#4d401e");

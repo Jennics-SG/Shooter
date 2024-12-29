@@ -50,7 +50,7 @@ export class Player extends Container{
             0 + 100, 0, 50, 20
         )
         this.addChild(this.gun);
-        world.addToProjectiles(this.gun.bulletContainer);
+        world.addToProjectiles(this.gun.bulletContainer)
 
         // Event listeners for controls
         document.addEventListener('keydown', this._onKeyDown.bind(this))
@@ -153,11 +153,7 @@ export class Player extends Container{
             // Get global bullet position 
             const globalPos = bullet.getGlobalPosition()
 
-            console.log(globalPos);
-
             // Delete bullet if outside of world
-            console.log(globalPos.y  ,
-                globalPos.y <= 10)
             if(
                 globalPos.x <= 10 || globalPos.x >= world.width  ||
                 globalPos.y <= 10|| globalPos.y >= world.height

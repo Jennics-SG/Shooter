@@ -48904,6 +48904,29 @@ var Bullet = class _Bullet extends Container {
   setTimer(timer) {
     this.timer = timer;
   }
+  isColliding(obj) {
+    if (this.destroyed || obj.destroyed) return false;
+    const aPos = this.getGlobalPosition();
+    const bPos = obj.getGlobalPosition();
+    const a2 = {
+      ...aPos,
+      w: this.width,
+      h: this.height
+    };
+    const b2 = {
+      ...bPos,
+      w: obj.width,
+      h: obj.height
+    };
+    if (this.distanceNumFromPoint(bPos) >= b2.w * 1.5) return false;
+    return a2.x < b2.x + b2.w && a2.x + a2.w > b2.x && a2.y < b2.y + b2.h && a2.y + a2.h > b2.h;
+  }
+  distanceNumFromPoint(pos) {
+    const myPos = this.getGlobalPosition();
+    const a2 = pos.x - myPos.x;
+    const b2 = pos.y - myPos.y;
+    return Math.sqrt(a2 ** 2 + b2 ** 2);
+  }
   onTick(deltaTime) {
     if (this.destroyed) return;
     const change = new Point2(
@@ -48915,6 +48938,7 @@ var Bullet = class _Bullet extends Container {
     this.y += change.y * deltaTime;
   }
   delete(timer) {
+    this.parent.removeChild(this);
     this.destroy();
     clearTimeout(timer);
   }
@@ -48930,8 +48954,8 @@ var Gun = class extends Container {
     this.bullets = new Array();
     this._cursor = new Graphics();
     this._cursor.rect(
-      x2,
-      y2,
+      x2 - w2 / 2,
+      y2 - h2 / 2,
       w2,
       h2
     );
@@ -49066,11 +49090,6 @@ var Player = class _Player extends Container {
     for (let bullet of this.gun.bullets) {
       if (bullet.destroyed) continue;
       const globalPos = bullet.getGlobalPosition();
-      console.log(globalPos);
-      console.log(
-        globalPos.y,
-        globalPos.y <= 10
-      );
       if (globalPos.x <= 10 || globalPos.x >= world.width || globalPos.y <= 10 || globalPos.y >= world.height) bullet.delete(bullet.timer);
       bullet.onTick.bind(bullet)(deltaTime);
     }
@@ -49125,7 +49144,7 @@ var Enemy = class extends Container {
   takeDamage(amount) {
     this._health -= amount;
     this.alpha = 0.5;
-    this.tint = "#d9d3c3";
+    setTimeout(() => this.alpha = 1, 100);
   }
   delete() {
     this.parent.removeChild(this);
@@ -49134,6 +49153,10 @@ var Enemy = class extends Container {
   onTick(target, deltaTime) {
     if (this.destroyed) return;
     this.lookAt(target.getGlobalPosition());
+    if (this._health <= 0) {
+      this.delete();
+      return;
+    }
     if (this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
   }
 };
@@ -49199,6 +49222,12 @@ var MainWorld = class extends Container {
   onTick(deltaTime) {
     for (let enemy of this._enemies) {
       enemy.onTick(this._player, deltaTime);
+      for (const bullet of this._player.gun.bullets) {
+        if (bullet.destroyed) continue;
+        if (!bullet.isColliding(enemy)) continue;
+        bullet.delete(bullet.timer);
+        enemy.takeDamage(10);
+      }
     }
   }
   addToProjectiles(proj) {

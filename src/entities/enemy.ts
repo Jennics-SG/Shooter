@@ -71,7 +71,7 @@ export class Enemy extends Container{
     public takeDamage(amount: number): void{
         this._health -= amount;
         this.alpha = 0.5
-        this.tint = '#d9d3c3'
+        setTimeout(()=> this.alpha = 1, 100);
     }
 
     public delete(){
@@ -83,6 +83,11 @@ export class Enemy extends Container{
         if(this.destroyed) return;        
         this.lookAt(target.getGlobalPosition());
         
+        if(this._health <= 0){
+            this.delete()
+            return;
+        }
+
         // If player within stop range return
         if(this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
         // this.moveToPoint(deltaTime);
