@@ -10,10 +10,12 @@ import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
 export class Bullet extends Container{
-    public static LIFE_TIMER = 1000;
+    public static LIFE_TIMER = 5000;
     private static SPEED = 10;
 
     private _cursor: Graphics;
+
+    public timer!: number;
 
     constructor(x: number, y: number, w: number, h: number, rot: number){
         super({x, y, width: w, height: h});
@@ -32,6 +34,10 @@ export class Bullet extends Container{
         this.rotation = rot;
     }
 
+    public setTimer(timer: number){
+        this.timer = timer
+    }
+
     public onTick(deltaTime: number){
         if(this.destroyed) return;
         
@@ -44,5 +50,10 @@ export class Bullet extends Container{
         change.normalize();
         this.x += change.x * deltaTime;
         this.y += change.y * deltaTime
+    }
+
+    public delete(timer: number){
+        this.destroy();
+        clearTimeout(timer)
     }
 }

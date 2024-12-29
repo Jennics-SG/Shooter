@@ -48881,7 +48881,7 @@ Rectangle2.prototype.union = function(other, outRect) {
 // src/bullet.ts
 var Bullet = class _Bullet extends Container {
   static {
-    this.LIFE_TIMER = 1e3;
+    this.LIFE_TIMER = 5e3;
   }
   static {
     this.SPEED = 10;
@@ -48900,6 +48900,9 @@ var Bullet = class _Bullet extends Container {
     this.addChild(this._cursor);
     this.rotation = rot;
   }
+  setTimer(timer) {
+    this.timer = timer;
+  }
   onTick(deltaTime) {
     if (this.destroyed) return;
     const change = new Point2(
@@ -48909,6 +48912,10 @@ var Bullet = class _Bullet extends Container {
     change.normalize();
     this.x += change.x * deltaTime;
     this.y += change.y * deltaTime;
+  }
+  delete(timer) {
+    this.destroy();
+    clearTimeout(timer);
   }
 };
 
@@ -48952,10 +48959,11 @@ var Gun = class extends Container {
     );
     this.bulletContainer.addChild(bullet);
     this.bullets.push(bullet);
-    setTimeout(() => {
-      bullet.destroy();
+    const timer = setTimeout(() => {
       this.bullets.shift();
+      bullet.delete(bullet.timer);
     }, Bullet.LIFE_TIMER);
+    bullet.setTimer(timer);
   }
 };
 
@@ -49055,8 +49063,71 @@ var Player = class _Player extends Container {
     else if (!camWithinBounds.down) this._boundMoveDown(world, change, deltaTime);
     else world.y += change.y * deltaTime;
     for (let bullet of this.gun.bullets) {
+      if (bullet.destroyed) continue;
+      const globalPos = world.toGlobal(bullet.position);
+      if (globalPos.x <= 10 || globalPos.x >= world.width / 2 - 10 || globalPos.y <= 10 || globalPos.y >= world.height / 2 - 10) bullet.delete(bullet.timer);
       bullet.onTick.bind(bullet)(deltaTime);
     }
+  }
+};
+
+// src/enemy.ts
+var Enemy = class extends Container {
+  constructor(x2, y2, w2, h2, stopRange, health) {
+    super({ x: x2, y: y2 });
+    this._speed = 5;
+    this._stopRange = stopRange;
+    this._health = health;
+    this._cursor = new Graphics();
+    this._cursor.rect(
+      0 - w2 / 2,
+      0 - h2 / 2,
+      w2,
+      h2
+    );
+    this._cursor.fill("#ff5454");
+    this.addChild(this._cursor);
+  }
+  // Calculate rotation towards point and set as entity rotation
+  // Must take pos as global co-ords
+  lookAt(pos) {
+    const distance = this.distanceVecFromPoint(pos);
+    this.rotation = Math.atan2(distance.y, distance.x);
+  }
+  moveToPoint(deltaTime) {
+    const change = new Point2(
+      this._speed * Math.cos(this.rotation),
+      this._speed * Math.sin(this.rotation)
+    );
+    change.normalize();
+    this.x += change.x * deltaTime;
+    this.y += change.y * deltaTime;
+  }
+  distanceNumFromPoint(pos) {
+    const myPos = this.getGlobalPosition();
+    const a2 = pos.x - myPos.x;
+    const b2 = pos.y - myPos.y;
+    return Math.sqrt(a2 ** 2 + b2 ** 2);
+  }
+  distanceVecFromPoint(pos) {
+    const myPos = this.getGlobalPosition();
+    return new Point2(
+      pos.x - myPos.x,
+      pos.y - myPos.y
+    );
+  }
+  takeDamage(amount) {
+    this._health -= amount;
+    this.alpha = 0.5;
+    this.tint = "#d9d3c3";
+  }
+  delete() {
+    this.parent.removeChild(this);
+    this.destroy({ children: true });
+  }
+  onTick(target, deltaTime) {
+    this.lookAt(target.getGlobalPosition());
+    if (this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
   }
 };
 
@@ -49085,7 +49156,12 @@ var Shooter = class {
     await Assets.load("background");
   }
   async setupWorld() {
-    const cont = new Container();
+    const cont = new Container({
+      x: window.innerWidth / 2,
+      y: window.innerHeight / 2,
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
     const background = new TilingSprite({
       texture: Assets.get("background"),
       width: this.app.screen.width * 2,
@@ -49107,6 +49183,18 @@ var Shooter = class {
     );
     this.app.stage.addChild(player);
     this.app.ticker.add(() => player.onTick(this.world, this.app.ticker.deltaTime), player);
+    const enemy = new Enemy(
+      -200,
+      -200,
+      100,
+      100,
+      200,
+      100
+    );
+    this.world.addChild(enemy);
+    this.app.ticker.add(() => {
+      enemy.onTick(player, this.app.ticker.deltaTime);
+    });
     this.app.ticker.start();
   }
 };

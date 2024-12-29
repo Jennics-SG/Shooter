@@ -6,6 +6,7 @@
 
 import { Application, Assets, Sprite, Container, TilingSprite } from 'pixi.js';
 import { Player } from './player';
+import { Enemy } from './enemy';
 
 // Container to hold application
 class Shooter{
@@ -42,7 +43,12 @@ class Shooter{
     }
 
     async setupWorld(): Promise<Container>{
-        const cont = new Container()
+        const cont = new Container({
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            width: window.innerWidth,
+            height: window.innerHeight
+        })
 
         // Background
         const background = new TilingSprite({
@@ -66,8 +72,21 @@ class Shooter{
         );
 
         this.app.stage.addChild(player);
+
+        // Player tick function
         this.app.ticker.add(()=>player.onTick(this.world, this.app.ticker.deltaTime), player)
 
+        const enemy = new Enemy(
+            -200, -200, 100, 100, 200, 100
+        );
+        this.world.addChild(enemy); 
+
+        // Enemy tick function
+        this.app.ticker.add(()=> {
+            enemy.onTick(player, this.app.ticker.deltaTime)
+        })
+
+        // Start ticker
         this.app.ticker.start();
     }
 }

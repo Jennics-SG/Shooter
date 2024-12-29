@@ -4,12 +4,11 @@
  *  Date:   27/12/24 
  */
 
-import { Container, Graphics, Rectangle } from "pixi.js";
+import { Container, Graphics } from "pixi.js";
 import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
 import { Gun } from "./gun";
-import { Bullet } from "./bullet";
 
 export class Player extends Container{
     private static AXIS_FLIP: number = -1;
@@ -148,8 +147,18 @@ export class Player extends Container{
 
         // Execute onTick for bullets
         for(let bullet of this.gun.bullets){
-            bullet.onTick.bind(bullet)(deltaTime);
+            if(bullet.destroyed) continue;
+
+            // Get global bullet position 
+            const globalPos = world.toGlobal(bullet.position)
+
+            // Delete bullet if outside of world
+            if(
+                globalPos.x <= 10 || globalPos.x >= world.width / 2 - 10 ||
+                globalPos.y <= 10|| globalPos.y >= world.height / 2 - 10
+            ) bullet.delete(bullet.timer)
             
+            bullet.onTick.bind(bullet)(deltaTime);
         }
     }
 

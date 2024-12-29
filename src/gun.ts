@@ -13,6 +13,7 @@ export class Gun extends Container{
 
     private _offset: number
 
+    public timer!: number;
     public bulletContainer: Container;
     public bullets: Array<Bullet>
 
@@ -70,10 +71,11 @@ export class Gun extends Container{
         this.bullets.push(bullet)
 
         // Destroy bullet in 1 second 
-        setTimeout(()=> {
-            bullet.destroy();
+        const timer = setTimeout(()=> {
             this.bullets.shift()
+            bullet.delete(bullet.timer);
         }, Bullet.LIFE_TIMER)
+        bullet.setTimer(timer);
 
     }
 }
