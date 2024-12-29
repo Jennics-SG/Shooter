@@ -9,6 +9,7 @@ import { Point } from "@pixi/math";
 import '@pixi/math-extras'
 
 import { Gun } from "./gun";
+import { MainWorld } from "../levels/MainWorld";
 
 export class Player extends Container{
     private static AXIS_FLIP: number = -1;
@@ -25,7 +26,7 @@ export class Player extends Container{
     public speed: number = 5;
     public gun: Gun
 
-    constructor(x: number, y: number, w: number, h: number, world: Container){
+    constructor(x: number, y: number, w: number, h: number, world: MainWorld){
         super({x, y,});
 
         this._centerOffset = new Point(w/2, h/2);
@@ -49,7 +50,7 @@ export class Player extends Container{
             0 + 100, 0, 50, 20
         )
         this.addChild(this.gun);
-        world.addChild(this.gun.bulletContainer);
+        world.addToProjectiles(this.gun.bulletContainer);
 
         // Event listeners for controls
         document.addEventListener('keydown', this._onKeyDown.bind(this))
@@ -57,7 +58,7 @@ export class Player extends Container{
 
         // Firing gun event listener
         document.addEventListener('mousedown', (e)=> 
-            this.gun.spawnBullet.bind(this.gun)(e, world.toLocal(this.position))
+            this.gun.spawnBullet.bind(this.gun)(e, this.getGlobalPosition())
         );
     }
 
@@ -76,7 +77,7 @@ export class Player extends Container{
         if(change.x > 0 && this.x - this._centerOffset.x <= 0) return
         
         // Is player moving left OR is player moving back to center?
-        if(change.x > 0 && this.x > 0 || change.x < 0 && this.x  < world.width / 4)
+        if(change.x > 0 || change.x < 0 && this.x  <= world.width / 4)
             this.x += (change.x * Player.AXIS_FLIP) * delta;
         else world.x += change.x * delta;
     }
@@ -108,7 +109,7 @@ export class Player extends Container{
         // Is player moving down OR is player moving back to center?
         if(change.y < 0 || change.y > 0 && this.y > world.height / 4)
             this.y += (change.y * Player.AXIS_FLIP) * delta
-        else world.y += change.y * delta; 
+        else world.y += change.y * delta;
     }
 
     // TICKER FUNCTION --------------------------------------------------------------
@@ -150,12 +151,16 @@ export class Player extends Container{
             if(bullet.destroyed) continue;
 
             // Get global bullet position 
-            const globalPos = world.toGlobal(bullet.position)
+            const globalPos = bullet.getGlobalPosition()
+
+            console.log(globalPos);
 
             // Delete bullet if outside of world
+            console.log(globalPos.y  ,
+                globalPos.y <= 10)
             if(
-                globalPos.x <= 10 || globalPos.x >= world.width / 2 - 10 ||
-                globalPos.y <= 10|| globalPos.y >= world.height / 2 - 10
+                globalPos.x <= 10 || globalPos.x >= world.width  ||
+                globalPos.y <= 10|| globalPos.y >= world.height
             ) bullet.delete(bullet.timer)
             
             bullet.onTick.bind(bullet)(deltaTime);

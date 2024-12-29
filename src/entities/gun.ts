@@ -47,7 +47,7 @@ export class Gun extends Container{
     // Update rotation of the gun
     private _updateRotation(e: MouseEvent): void{
         // We use global position because its less jittery
-        const playerPos: Point = this.toGlobal(this.position)
+        const playerPos: Point = this.getGlobalPosition();
         const distance: Point = new Point(e.x - playerPos.x, e.y - playerPos.y);
 
         this.rotation = Math.atan2(distance.y, distance.x);

@@ -39101,6 +39101,7 @@ init_Point();
 init_textureFrom();
 init_Container();
 init_Graphics();
+init_Ticker();
 init_eventemitter3();
 var import_earcut2 = __toESM(require_earcut(), 1);
 extensions.add(browserExt, webworkerExt);
@@ -48878,7 +48879,7 @@ Rectangle2.prototype.union = function(other, outRect) {
   return outRect.x = x1, outRect.y = y1, outRect.width = x2 - x1, outRect.height = y2 - y1, outRect;
 };
 
-// src/bullet.ts
+// src/entities/bullet.ts
 var Bullet = class _Bullet extends Container {
   static {
     this.LIFE_TIMER = 5e3;
@@ -48919,7 +48920,7 @@ var Bullet = class _Bullet extends Container {
   }
 };
 
-// src/gun.ts
+// src/entities/gun.ts
 var Gun = class extends Container {
   constructor(x2, y2, w2, h2) {
     super({ x: 0, y: 0 });
@@ -48940,7 +48941,7 @@ var Gun = class extends Container {
   }
   // Update rotation of the gun
   _updateRotation(e2) {
-    const playerPos = this.toGlobal(this.position);
+    const playerPos = this.getGlobalPosition();
     const distance = new Point(e2.x - playerPos.x, e2.y - playerPos.y);
     this.rotation = Math.atan2(distance.y, distance.x);
   }
@@ -48967,7 +48968,7 @@ var Gun = class extends Container {
   }
 };
 
-// src/player.ts
+// src/entities/player.ts
 var Player = class _Player extends Container {
   constructor(x2, y2, w2, h2, world) {
     super({ x: x2, y: y2 });
@@ -48995,12 +48996,12 @@ var Player = class _Player extends Container {
       20
     );
     this.addChild(this.gun);
-    world.addChild(this.gun.bulletContainer);
+    world.addToProjectiles(this.gun.bulletContainer);
     document.addEventListener("keydown", this._onKeyDown.bind(this));
     document.addEventListener("keyup", this._onKeyUp.bind(this));
     document.addEventListener(
       "mousedown",
-      (e2) => this.gun.spawnBullet.bind(this.gun)(e2, world.toLocal(this.position))
+      (e2) => this.gun.spawnBullet.bind(this.gun)(e2, this.getGlobalPosition())
     );
   }
   static {
@@ -49016,7 +49017,7 @@ var Player = class _Player extends Container {
   // We flip the movement axis to move player instead of the world
   _boundMoveLeft(world, change, delta) {
     if (change.x > 0 && this.x - this._centerOffset.x <= 0) return;
-    if (change.x > 0 && this.x > 0 || change.x < 0 && this.x < world.width / 4)
+    if (change.x > 0 || change.x < 0 && this.x <= world.width / 4)
       this.x += change.x * _Player.AXIS_FLIP * delta;
     else world.x += change.x * delta;
   }
@@ -49064,14 +49065,19 @@ var Player = class _Player extends Container {
     else world.y += change.y * deltaTime;
     for (let bullet of this.gun.bullets) {
       if (bullet.destroyed) continue;
-      const globalPos = world.toGlobal(bullet.position);
-      if (globalPos.x <= 10 || globalPos.x >= world.width / 2 - 10 || globalPos.y <= 10 || globalPos.y >= world.height / 2 - 10) bullet.delete(bullet.timer);
+      const globalPos = bullet.getGlobalPosition();
+      console.log(globalPos);
+      console.log(
+        globalPos.y,
+        globalPos.y <= 10
+      );
+      if (globalPos.x <= 10 || globalPos.x >= world.width || globalPos.y <= 10 || globalPos.y >= world.height) bullet.delete(bullet.timer);
       bullet.onTick.bind(bullet)(deltaTime);
     }
   }
 };
 
-// src/enemy.ts
+// src/entities/enemy.ts
 var Enemy = class extends Container {
   constructor(x2, y2, w2, h2, stopRange, health) {
     super({ x: x2, y: y2 });
@@ -49131,10 +49137,114 @@ var Enemy = class extends Container {
   }
 };
 
+// src/levels/MainWorld.ts
+var MainWorld = class extends Container {
+  // X / Y should be center of the screen
+  constructor(x2, y2, w2, h2, parent) {
+    super({
+      x: 0,
+      y: 0,
+      width: w2,
+      height: h2
+    });
+    this._width = w2;
+    this._height = h2;
+    this._parent = parent;
+    this.ticker = new Ticker();
+    this.ticker.autoStart = false;
+    this.ticker.stop();
+    this._projectiles = new Container();
+    this._environment = new Container();
+    this._enemies = new Array();
+    this._load.bind(this)();
+  }
+  _load() {
+    const background = new TilingSprite({
+      texture: Assets.get("background"),
+      width: this._width * 2,
+      height: this._height * 2
+    });
+    background.x = this._width / 2;
+    background.y = this._height / 2;
+    background.anchor.set(0.5);
+    this._environment.addChild(background);
+    this._initialiseWorld();
+  }
+  _initialiseWorld() {
+    this.addChild(this._environment);
+    this.addChild(this._projectiles);
+    this._player = new Player(
+      this.width / 4,
+      this.height / 4,
+      50,
+      100,
+      this
+    );
+    this.addChild(this._player);
+    const enemy = new Enemy(0, 0, 100, 100, 200, 100);
+    this._environment.addChild(enemy);
+    this.ticker.add(() => enemy.onTick(this._player, this.ticker.deltaTime));
+    this._initialiseTicker();
+  }
+  _initialiseTicker() {
+    this.ticker.add(() => {
+      this._player.onTick(this._environment, this.ticker.deltaTime);
+    }, this._player);
+    this.ticker.start();
+  }
+  onTick(deltaTime) {
+  }
+  addToProjectiles(proj) {
+    this._projectiles.addChild(proj);
+  }
+  resetWorld() {
+    this.removeChild(this._player);
+    this._player.destroy({ children: true });
+    for (let enemy of this._enemies) {
+      this.removeChild(enemy);
+      enemy.destroy({ children: true });
+    }
+    this.removeChild(this._environment);
+    this._environment.destroy({ children: true });
+    this._initialiseWorld();
+  }
+  endGame() {
+    console.log("End Game");
+  }
+};
+
+// src/StateManager.ts
+var StateManager = class {
+  constructor(parent) {
+    this._parent = parent;
+  }
+  unLoad() {
+    if (!this._currentWord) return;
+    this._parent.stage.removeChild(this._currentWord);
+    this._currentWord.destroy({ children: true });
+  }
+  loadState(state) {
+    switch (state) {
+      case "game":
+      case "Game":
+        this._currentWord = new MainWorld(
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+          window.innerWidth,
+          window.innerHeight,
+          this
+        );
+        break;
+    }
+    this._parent.stage.addChild(this._currentWord);
+  }
+};
+
 // src/main.ts
 var Shooter = class {
   constructor() {
     this.app = new Application();
+    this._stateManager = new StateManager(this.app);
     this.init();
   }
   async init() {
@@ -49147,55 +49257,11 @@ var Shooter = class {
       resizeTo: window
     });
     await this.loadAssets();
-    this.world = await this.setupWorld();
-    this.app.stage.addChild(this.world);
-    this.startGame();
+    this._stateManager.loadState("game");
   }
   async loadAssets() {
     Assets.add({ alias: "background", src: "./resources/background.png" });
     await Assets.load("background");
-  }
-  async setupWorld() {
-    const cont = new Container({
-      x: window.innerWidth / 2,
-      y: window.innerHeight / 2,
-      width: window.innerWidth,
-      height: window.innerHeight
-    });
-    const background = new TilingSprite({
-      texture: Assets.get("background"),
-      width: this.app.screen.width * 2,
-      height: this.app.screen.height * 2
-    });
-    background.anchor.set(0.5);
-    background.x = this.app.screen.width / 2;
-    background.y = this.app.screen.height / 2;
-    cont.addChild(background);
-    return cont;
-  }
-  async startGame() {
-    const player = new Player(
-      this.app.screen.width / 2,
-      this.app.screen.height / 2,
-      50,
-      100,
-      this.world
-    );
-    this.app.stage.addChild(player);
-    this.app.ticker.add(() => player.onTick(this.world, this.app.ticker.deltaTime), player);
-    const enemy = new Enemy(
-      -200,
-      -200,
-      100,
-      100,
-      200,
-      100
-    );
-    this.world.addChild(enemy);
-    this.app.ticker.add(() => {
-      enemy.onTick(player, this.app.ticker.deltaTime);
-    });
-    this.app.ticker.start();
   }
 };
 document.addEventListener("DOMContentLoaded", (_) => new Shooter());
