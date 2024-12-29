@@ -79,7 +79,7 @@ export class MainWorld extends Container{
         const enemy = new Enemy(0, 0, 100, 100, 200, 100)
         this._environment.addChild(enemy)
 
-        this.ticker.add(()=> enemy.onTick(this._player, this.ticker.deltaTime))
+        this._enemies.push(enemy);
 
         this._initialiseTicker();
     }
@@ -90,11 +90,19 @@ export class MainWorld extends Container{
             this._player.onTick(this._environment, this.ticker.deltaTime)
         }, this._player);
 
+        this.ticker.add( () =>{
+            this.onTick(this.ticker.deltaTime);
+        }, this);
+
         this.ticker.start();
     }
 
     public onTick(deltaTime: number){
-
+        // Run ticker for all enemies
+        for(let enemy of this._enemies){
+            enemy.onTick(this._player, deltaTime);
+            
+        }
     }
 
     public addToProjectiles(proj: Container){

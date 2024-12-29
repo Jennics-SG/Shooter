@@ -79,10 +79,12 @@ export class Enemy extends Container{
         this.destroy({children: true});
     }
 
-    public onTick(target: Player, deltaTime: number): void{        
+    public onTick(target: Player, deltaTime: number): void{
+        if(this.destroyed) return;        
         this.lookAt(target.getGlobalPosition());
         
         // If player within stop range return
         if(this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
+        // this.moveToPoint(deltaTime);
     }
 }

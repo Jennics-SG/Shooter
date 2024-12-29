@@ -49132,6 +49132,7 @@ var Enemy = class extends Container {
     this.destroy({ children: true });
   }
   onTick(target, deltaTime) {
+    if (this.destroyed) return;
     this.lookAt(target.getGlobalPosition());
     if (this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
   }
@@ -49183,16 +49184,22 @@ var MainWorld = class extends Container {
     this.addChild(this._player);
     const enemy = new Enemy(0, 0, 100, 100, 200, 100);
     this._environment.addChild(enemy);
-    this.ticker.add(() => enemy.onTick(this._player, this.ticker.deltaTime));
+    this._enemies.push(enemy);
     this._initialiseTicker();
   }
   _initialiseTicker() {
     this.ticker.add(() => {
       this._player.onTick(this._environment, this.ticker.deltaTime);
     }, this._player);
+    this.ticker.add(() => {
+      this.onTick(this.ticker.deltaTime);
+    }, this);
     this.ticker.start();
   }
   onTick(deltaTime) {
+    for (let enemy of this._enemies) {
+      enemy.onTick(this._player, deltaTime);
+    }
   }
   addToProjectiles(proj) {
     this._projectiles.addChild(proj);
