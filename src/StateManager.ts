@@ -10,18 +10,18 @@ import { MainWorld } from "./levels/MainWorld";
 
 export class StateManager{
 
-    private _parent: Application
+    public parent: Application
 
     private _currentWord!: Container;
 
     constructor(parent: Application){
-        this._parent = parent;
+        this.parent = parent;
     }
 
     private unLoad(){
         if(!this._currentWord) return
 
-        this._parent.stage.removeChild(this._currentWord);
+        this.parent.stage.removeChild(this._currentWord);
         this._currentWord.destroy({children: true});
     }
 
@@ -38,6 +38,6 @@ export class StateManager{
                 )
                 break;
         }
-        this._parent.stage.addChild(this._currentWord);
+        this.parent.stage.addChild(this._currentWord);
     }
 }

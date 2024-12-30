@@ -4,15 +4,24 @@
  *  Date:   29/12/24
  */
 
-import { Container, Ticker, Assets, TilingSprite } from "pixi.js";
+import Noise from "noisejs";
 
+import { Container, Ticker, Assets, TilingSprite, Point } from "pixi.js";
 import { Collisions } from "../collision";
 import { Player } from "../entities/player";
 import { Enemy } from "../entities/enemy";
 
 import { StateManager } from "../StateManager";
 
+interface Noise_Map_Cell{
+    x: number,      // Global X Pos of cell
+    y: number,      // Global Y Pos of cell
+    value: number   // Perlin value of cell
+}
+
 export class MainWorld extends Container{
+    private static GRID_SIZE: number = 16   // Pixels in a noise cell
+    
     private _parent: StateManager
     private _environment: Container
     private _player!: Player
@@ -20,6 +29,9 @@ export class MainWorld extends Container{
     private _width: number;
     private _height: number;
     private _projectiles: Container
+    private _noiseMap: Array<Array<Noise_Map_Cell>>
+
+    private _framesSinceEnemySpawn: number = 0;
 
     public ticker: Ticker
 
@@ -40,8 +52,12 @@ export class MainWorld extends Container{
         this._projectiles = new Container();
 
         this._environment = new Container();
+        this._environment.width = this._width * 2;
+        this._environment.height = this._height * 2;
 
         this._enemies = new Array();
+
+        this._noiseMap = this._generateNoiseMap(Math.random())
 
         this._load.bind(this)();
     }
@@ -97,10 +113,75 @@ export class MainWorld extends Container{
         this.ticker.start();
     }
 
-    public onTick(deltaTime: number){
+    private _generateNoiseMap(seed: number): Array<Array<Noise_Map_Cell>>{
+        const n = new Noise.Noise(seed);
+        let g = new Array();
+
+        for(let x = 0; x < this._width * 2; x += MainWorld.GRID_SIZE){
+            let r = new Array();
+            for(let y = 0; y < this._height * 2; y+= MainWorld.GRID_SIZE){
+                let cell: Noise_Map_Cell = {
+                    x, y,
+                    value: (n.perlin2(x / 100, y / 100) * 100)
+                }
+                r.push(cell);
+            }
+            g.push(r);
+        }
+        return g
+    }
+
+    // Get perlin value of x/y co-ordinate
+    private _getPerlinAtPoint(pos: Point): number{
+        // Get point local to environment
+        const p = this._environment.toLocal(pos);
+        const x = Math.abs( 
+            Math.floor((p.x / MainWorld.GRID_SIZE) % this._noiseMap[0].length)
+        );
+
+        const y = Math.abs(
+            Math.floor((p.y / MainWorld.GRID_SIZE) % this._noiseMap.length)
+        );
+
+        return this._noiseMap[x][y].value
+    }
+
+    private _spawnEnemy(): void{
+        // get random x,y
+        // Check perlin value
+        // If perlin value < 0, pick new point
+        const getPoint = function(noiseMap: Array<Array<Noise_Map_Cell>>): Point{
+            const i = Math.floor(Math.random() * noiseMap[0].length);
+            const j = Math.floor(Math.random() * noiseMap.length)
+   
+            const mapCell = noiseMap[j][i]
+
+            console.log(mapCell);
+
+            return mapCell.value > 0 ? new Point(mapCell.x, mapCell.y) : getPoint(noiseMap);
+        }
+        const pos = getPoint(this._noiseMap);
+
+        console.log(pos);
+
+        const enemy = new Enemy(pos.x, pos.y, 100, 50, {
+            stopRange: 300,
+            speed: 5,
+            health: 100
+        });
+
+        this._environment.addChild(enemy)
+
+        this._enemies.push(enemy);
+        this._framesSinceEnemySpawn = 0;
+    }
+
+    public onTick(deltaTime: number): void{
         // Run ticker for all enemies
         for(let enemy of this._enemies){
             enemy.onTick(this._player, deltaTime);
+            
+            // Is bullet hitting enemy?
             for(const bullet of this._player.gun.bullets){
                 if(bullet.destroyed) continue;
                 
@@ -109,8 +190,13 @@ export class MainWorld extends Container{
                 enemy.takeDamage(10);
             }
 
+            // Is player hitting enemy>
             if(Collisions.isColliding(enemy.hitbox, this._player.hitbox))   this._player.takeDamage(10);
         }
+
+        // Enemy spawning logic
+        this._framesSinceEnemySpawn++;
+        // if(this._framesSinceEnemySpawn >= 100) this._spawnEnemy();
     }
 
     public addToProjectiles(proj: Container){
