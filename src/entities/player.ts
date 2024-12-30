@@ -70,7 +70,7 @@ export class Player extends Container{
 
         // Firing gun event listener
         document.addEventListener('mousedown', (e)=> 
-            this.gun.spawnBullet.bind(this.gun)(e, this.getGlobalPosition())
+            this.gun.spawnBullet.bind(this.gun)(this.getGlobalPosition())
         );
     }
 

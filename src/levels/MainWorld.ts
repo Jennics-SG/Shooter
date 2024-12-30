@@ -13,17 +13,12 @@ import { Enemy } from "../entities/enemy";
 import { StateManager } from "../StateManager";
 
 export class MainWorld extends Container{
-
     private _parent: StateManager
-
     private _environment: Container
-
     private _player!: Player
     private _enemies: Array<Enemy>
-
     private _width: number;
     private _height: number;
-
     private _projectiles: Container
 
     public ticker: Ticker
@@ -50,7 +45,7 @@ export class MainWorld extends Container{
 
         this._load.bind(this)();
     }
-
+ 
     private _load(): void{
         // Background
         const background = new TilingSprite({
@@ -76,7 +71,7 @@ export class MainWorld extends Container{
         )
         this.addChild(this._player);
 
-        const enemy = new Enemy(0, 0, 100, 100, {
+        const enemy = new Enemy(0, 0, 100, 50, {
             stopRange: 300,
             speed: 5,
             health: 100
@@ -113,10 +108,8 @@ export class MainWorld extends Container{
                 bullet.delete(bullet.timer);
                 enemy.takeDamage(10);
             }
-            console.log(Collisions.isColliding(enemy.hitbox, this._player.hitbox));
-            if(!Collisions.isColliding(enemy.hitbox, this._player.hitbox)) continue;
 
-            this._player.takeDamage(10);
+            if(Collisions.isColliding(enemy.hitbox, this._player.hitbox))   this._player.takeDamage(10);
         }
     }
 

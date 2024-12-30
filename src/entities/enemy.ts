@@ -22,7 +22,7 @@ export class Enemy extends Container{
     private _speed: number = 5;
 
     private _cursor: Graphics
-    private _stopRange: number = 200;
+    private _stopRange: number = 0;
     private _health: number = 50;
 
     public hitbox: HitBox

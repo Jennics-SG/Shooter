@@ -52,7 +52,7 @@ export class Gun extends Container{
         this.rotation = Math.atan2(distance.y, distance.x);
     }
 
-    public spawnBullet(e: MouseEvent, globalPos: Point): void{
+    public spawnBullet(globalPos: Point): void{
         if(this.destroyed) return;
     
         // Get the current position of the gun by calculating the cosin

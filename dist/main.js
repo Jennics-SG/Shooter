@@ -48976,7 +48976,7 @@ var Gun = class extends Container {
     const distance = new Point(e2.x - playerPos.x, e2.y - playerPos.y);
     this.rotation = Math.atan2(distance.y, distance.x);
   }
-  spawnBullet(e2, globalPos) {
+  spawnBullet(globalPos) {
     if (this.destroyed) return;
     const gunPos = new Point(
       globalPos.x + this._offset * Math.cos(this.rotation),
@@ -49039,7 +49039,7 @@ var Player = class _Player extends Container {
     document.addEventListener("keyup", this._onKeyUp.bind(this));
     document.addEventListener(
       "mousedown",
-      (e2) => this.gun.spawnBullet.bind(this.gun)(e2, this.getGlobalPosition())
+      (e2) => this.gun.spawnBullet.bind(this.gun)(this.getGlobalPosition())
     );
   }
   static {
@@ -49123,7 +49123,7 @@ var Enemy = class extends Container {
   constructor(x2, y2, w2, h2, ops) {
     super({ x: x2, y: y2 });
     this._speed = 5;
-    this._stopRange = 200;
+    this._stopRange = 0;
     this._health = 50;
     this.hitbox = {
       parent: this,
@@ -49236,7 +49236,7 @@ var MainWorld = class extends Container {
       this
     );
     this.addChild(this._player);
-    const enemy = new Enemy(0, 0, 100, 100, {
+    const enemy = new Enemy(0, 0, 100, 50, {
       stopRange: 300,
       speed: 5,
       health: 100
@@ -49263,9 +49263,7 @@ var MainWorld = class extends Container {
         bullet.delete(bullet.timer);
         enemy.takeDamage(10);
       }
-      console.log(Collisions.isColliding(enemy.hitbox, this._player.hitbox));
-      if (!Collisions.isColliding(enemy.hitbox, this._player.hitbox)) continue;
-      this._player.takeDamage(10);
+      if (Collisions.isColliding(enemy.hitbox, this._player.hitbox)) this._player.takeDamage(10);
     }
   }
   addToProjectiles(proj) {
