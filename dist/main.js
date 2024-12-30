@@ -49668,7 +49668,7 @@ var Enemy = class extends Container {
     super({ x: x2, y: y2 });
     this._speed = 5;
     this._stopRange = 0;
-    this._health = 50;
+    this.health = 50;
     this.hitbox = {
       parent: this,
       width: w2,
@@ -49677,7 +49677,7 @@ var Enemy = class extends Container {
     if (ops) {
       this._speed = ops.speed ? ops.speed : this._speed;
       this._stopRange = ops.stopRange ? ops.stopRange : this._stopRange;
-      this._health = ops.health ? ops.health : this._health;
+      this.health = ops.health ? ops.health : this.health;
     }
     this._cursor = new Graphics();
     this._cursor.rect(
@@ -49718,7 +49718,7 @@ var Enemy = class extends Container {
     );
   }
   takeDamage(amount) {
-    this._health -= amount;
+    this.health -= amount;
     this.alpha = 0.5;
     setTimeout(() => this.alpha = 1, 100);
   }
@@ -49729,11 +49729,8 @@ var Enemy = class extends Container {
   onTick(target, deltaTime) {
     if (this.destroyed) return;
     this.lookAt(target.getGlobalPosition());
-    if (this._health <= 0) {
-      this.delete();
-      return;
-    }
     if (this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
+    this.moveToPoint(deltaTime);
   }
 };
 
@@ -49747,6 +49744,12 @@ var MainWorld = class _MainWorld extends Container {
       height: h2
     });
     this._framesSinceEnemySpawn = 0;
+    this._currentDifficulty = {
+      multiplier: 2,
+      maxEnemy: 3,
+      spawnAmount: 0,
+      enemiesKilled: 0
+    };
     this.gameWidth = w2;
     this.gameHeight = h2;
     this._parent = parent;
@@ -49787,13 +49790,7 @@ var MainWorld = class _MainWorld extends Container {
       this
     );
     this.addChild(this._player);
-    const enemy = new Enemy(0, 0, 100, 50, {
-      stopRange: 300,
-      speed: 5,
-      health: 100
-    });
-    this._environment.addChild(enemy);
-    this._enemies.push(enemy);
+    this._spawnEnemy();
     this._initialiseTicker();
   }
   _initialiseTicker() {
@@ -49838,32 +49835,69 @@ var MainWorld = class _MainWorld extends Container {
       const i2 = Math.floor(Math.random() * noiseMap[0].length);
       const j2 = Math.floor(Math.random() * noiseMap.length);
       const mapCell = noiseMap[j2][i2];
-      console.log(mapCell);
       return mapCell.value > 0 ? new Point(mapCell.x, mapCell.y) : getPoint(noiseMap);
     };
     const pos = getPoint(this._noiseMap);
-    console.log(pos);
+    const enemyStats = {
+      class: "test",
+      baseHealth: 20,
+      baseSpeed: 5
+    };
+    let healthMultiplier = Math.random() * this._currentDifficulty.multiplier;
+    let speedMultiplier = Math.random() * this._currentDifficulty.multiplier / 10;
+    console.log(enemyStats.baseHealth *= healthMultiplier, enemyStats.baseSpeed += speedMultiplier);
     const enemy = new Enemy(pos.x, pos.y, 100, 50, {
-      stopRange: 300,
-      speed: 5,
-      health: 100
+      stopRange: 75,
+      speed: enemyStats.baseSpeed,
+      health: enemyStats.baseHealth
     });
     this._environment.addChild(enemy);
     this._enemies.push(enemy);
     this._framesSinceEnemySpawn = 0;
+    this._currentDifficulty.spawnAmount++;
+  }
+  _increaseDifficulty() {
+    let m2 = this._currentDifficulty.multiplier;
+    this._currentDifficulty.maxEnemy += m2;
+    this._currentDifficulty.multiplier += m2;
+    this._currentDifficulty.enemiesKilled = 0;
+    this._currentDifficulty.spawnAmount = 0;
+    this._player.speed += m2 / 10;
+    console.log(this._currentDifficulty);
+  }
+  destroyEnemy(e2) {
+    const i2 = this._enemies.indexOf(e2);
+    if (i2 == -1) return;
+    this._environment.removeChild(e2);
+    this._enemies.splice(i2, 1);
+    e2.destroy({ children: true });
   }
   onTick(deltaTime) {
     for (let enemy of this._enemies) {
+      if (enemy.health <= 0) {
+        this.destroyEnemy(enemy);
+        this._currentDifficulty.enemiesKilled++;
+        console.log("ENEMIES SPAWNED: ", this._currentDifficulty.spawnAmount);
+        console.log("MAX ENEMIES: ", this._currentDifficulty.maxEnemy);
+        console.log("ENEMIES KILLED: ", this._currentDifficulty.enemiesKilled);
+      }
       enemy.onTick(this._player, deltaTime);
       for (const bullet of this._player.gun.bullets) {
         if (bullet.destroyed) continue;
         if (!Collisions.isColliding(bullet.hitbox, enemy.hitbox)) continue;
         bullet.delete(bullet.timer);
-        enemy.takeDamage(10);
+        enemy.takeDamage(20 * this._currentDifficulty.multiplier);
       }
       if (Collisions.isColliding(enemy.hitbox, this._player.hitbox)) this._player.takeDamage(10);
     }
-    this._framesSinceEnemySpawn++;
+    console.log(this._currentDifficulty.maxEnemy >= this._currentDifficulty.spawnAmount);
+    if (this._currentDifficulty.maxEnemy >= this._currentDifficulty.spawnAmount) {
+      this._framesSinceEnemySpawn++;
+      if (this._framesSinceEnemySpawn >= 1e3 / this._currentDifficulty.multiplier) this._spawnEnemy();
+    }
+    if (this._currentDifficulty.enemiesKilled >= this._currentDifficulty.maxEnemy) {
+      this._increaseDifficulty();
+    }
   }
   addToProjectiles(proj) {
     this._projectiles.addChild(proj);

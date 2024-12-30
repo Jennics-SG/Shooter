@@ -19,6 +19,19 @@ interface Noise_Map_Cell{
     value: number   // Perlin value of cell
 }
 
+interface Difficulty{
+    multiplier: number,
+    maxEnemy: number,
+    spawnAmount: number,
+    enemiesKilled: number
+}
+
+interface EnemyStats{
+    class: string,
+    baseHealth: number,
+    baseSpeed: number
+}
+
 export class MainWorld extends Container{
     private static GRID_SIZE: number = 16   // Pixels in a noise cell
     
@@ -30,6 +43,13 @@ export class MainWorld extends Container{
     private _noiseMap: Array<Array<Noise_Map_Cell>>
 
     private _framesSinceEnemySpawn: number = 0;
+
+    private _currentDifficulty: Difficulty = {
+        multiplier: 2,
+        maxEnemy: 3,
+        spawnAmount: 0,
+        enemiesKilled: 0
+    }
 
     public ticker: Ticker
     public gameWidth: number;
@@ -87,15 +107,7 @@ export class MainWorld extends Container{
         )
         this.addChild(this._player);
 
-        const enemy = new Enemy(0, 0, 100, 50, {
-            stopRange: 300,
-            speed: 5,
-            health: 100
-        });
-
-        this._environment.addChild(enemy)
-
-        this._enemies.push(enemy);
+        this._spawnEnemy();
 
         this._initialiseTicker();
     }
@@ -156,29 +168,67 @@ export class MainWorld extends Container{
    
             const mapCell = noiseMap[j][i]
 
-            console.log(mapCell);
-
             return mapCell.value > 0 ? new Point(mapCell.x, mapCell.y) : getPoint(noiseMap);
         }
         const pos = getPoint(this._noiseMap);
 
-        console.log(pos);
+        const enemyStats: EnemyStats = {
+            class: "test",
+            baseHealth: 20,
+            baseSpeed: 5,
+        } 
+
+        let healthMultiplier = Math.random() * this._currentDifficulty.multiplier;
+        let speedMultiplier = Math.random() * this._currentDifficulty.multiplier / 10
+
+        console.log(enemyStats.baseHealth *= healthMultiplier, enemyStats.baseSpeed += speedMultiplier);
 
         const enemy = new Enemy(pos.x, pos.y, 100, 50, {
-            stopRange: 300,
-            speed: 5,
-            health: 100
+            stopRange: 75,
+            speed: enemyStats.baseSpeed,
+            health: enemyStats.baseHealth
         });
 
         this._environment.addChild(enemy)
 
         this._enemies.push(enemy);
         this._framesSinceEnemySpawn = 0;
+        this._currentDifficulty.spawnAmount++;
+
+    }
+
+    private _increaseDifficulty(){
+        let m = this._currentDifficulty.multiplier;
+        this._currentDifficulty.maxEnemy += m;
+        this._currentDifficulty.multiplier += m;
+        this._currentDifficulty.enemiesKilled = 0;
+        this._currentDifficulty.spawnAmount = 0;
+        this._player.speed += m / 10;
+
+        console.log(this._currentDifficulty);
+    }
+
+    private destroyEnemy(e: Enemy){
+        const i = this._enemies.indexOf(e);
+        
+        if(i == -1) return
+
+        this._environment.removeChild(e);
+        this._enemies.splice(i, 1);
+        e.destroy({children: true});
     }
 
     public onTick(deltaTime: number): void{
         // Run ticker for all enemies
         for(let enemy of this._enemies){
+            if(enemy.health <= 0){
+                this.destroyEnemy(enemy);
+                this._currentDifficulty.enemiesKilled++;
+
+                console.log("ENEMIES SPAWNED: ", this._currentDifficulty.spawnAmount)
+                console.log("MAX ENEMIES: ", this._currentDifficulty.maxEnemy)
+                console.log("ENEMIES KILLED: ", this._currentDifficulty.enemiesKilled)
+            }
             enemy.onTick(this._player, deltaTime);
             
             // Is bullet hitting enemy?
@@ -187,16 +237,24 @@ export class MainWorld extends Container{
                 
                 if(!Collisions.isColliding(bullet.hitbox, enemy.hitbox)) continue;
                 bullet.delete(bullet.timer);
-                enemy.takeDamage(10);
+                enemy.takeDamage(20 * this._currentDifficulty.multiplier);
             }
 
             // Is player hitting enemy>
             if(Collisions.isColliding(enemy.hitbox, this._player.hitbox))   this._player.takeDamage(10);
         }
 
-        // Enemy spawning logic
-        this._framesSinceEnemySpawn++;
-        // if(this._framesSinceEnemySpawn >= 100) this._spawnEnemy();
+        // If there are still enemies to spawn, spawn them
+        console.log(this._currentDifficulty.maxEnemy >= this._currentDifficulty.spawnAmount)
+        if(this._currentDifficulty.maxEnemy >= this._currentDifficulty.spawnAmount){
+            this._framesSinceEnemySpawn++;
+            if(this._framesSinceEnemySpawn >= 1000 / this._currentDifficulty.multiplier) this._spawnEnemy();
+        } 
+
+        // check to see if they're all dead to start next wave
+        if(this._currentDifficulty.enemiesKilled >= this._currentDifficulty.maxEnemy){
+            this._increaseDifficulty();
+        }
     }
 
     public addToProjectiles(proj: Container){
