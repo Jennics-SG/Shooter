@@ -24,6 +24,8 @@ export class Player extends Container{
     }
     private _centerOffset: Point
     
+    public world: MainWorld;
+
     public speed: number = 5;
     public gun: Gun
     public hitbox: HitBox
@@ -63,6 +65,8 @@ export class Player extends Container{
         )
         this.addChild(this.gun);
         world.addToProjectiles(this.gun.bulletContainer)
+
+        this.world = world;
 
         // Event listeners for controls
         document.addEventListener('keydown', this._onKeyDown.bind(this))
@@ -151,10 +155,10 @@ export class Player extends Container{
         
         // Is camera hitting boundary?
         let camWithinBounds: {[key: string]: boolean} = {
-            left: world.x - world.width / 4 < 0,
-            right: world.x + world.width / 4 > 0,
-            up: world.y - world.height / 4 < 0,
-            down: world.y + world.height / 4 > 0 
+            left: world.x - this.world.gameWidth / 2 < 0,
+            right: world.x + this.world.gameWidth / 2 > 0,
+            up: world.y - this.world.gameHeight / 2 < 0,
+            down: world.y + this.world.gameHeight / 2 > 0 
         }
 
         // Horizontal Movement

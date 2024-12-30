@@ -26,22 +26,22 @@ export class MainWorld extends Container{
     private _environment: Container
     private _player!: Player
     private _enemies: Array<Enemy>
-    private _width: number;
-    private _height: number;
     private _projectiles: Container
     private _noiseMap: Array<Array<Noise_Map_Cell>>
 
     private _framesSinceEnemySpawn: number = 0;
 
     public ticker: Ticker
+    public gameWidth: number;
+    public gameHeight: number;
 
     constructor(x: number, y: number, w: number, h: number, parent: StateManager){
         super({
             x: 0, y: 0, width: w, height: h
         });
 
-        this._width = w;
-        this._height = h;
+        this.gameWidth = w;
+        this.gameHeight = h;
 
         this._parent = parent;
 
@@ -52,8 +52,8 @@ export class MainWorld extends Container{
         this._projectiles = new Container();
 
         this._environment = new Container();
-        this._environment.width = this._width * 2;
-        this._environment.height = this._height * 2;
+        this._environment.width = this.gameWidth * 2;
+        this._environment.height = this.gameHeight * 2;
 
         this._enemies = new Array();
 
@@ -66,11 +66,11 @@ export class MainWorld extends Container{
         // Background
         const background = new TilingSprite({
             texture: Assets.get("background"),
-            width: this._width * 2,
-            height: this._height * 2
+            width: this.gameWidth * 2,
+            height: this.gameHeight * 2
         });
-        background.x = this._width / 2;
-        background.y = this._height / 2;
+        background.x = this.gameWidth / 2;
+        background.y = this.gameHeight / 2;
         background.anchor.set(0.5);
         this._environment.addChild(background);
 
@@ -117,9 +117,9 @@ export class MainWorld extends Container{
         const n = new Noise.Noise(seed);
         let g = new Array();
 
-        for(let x = 0; x < this._width * 2; x += MainWorld.GRID_SIZE){
+        for(let x = 0; x < this.gameWidth * 2; x += MainWorld.GRID_SIZE){
             let r = new Array();
-            for(let y = 0; y < this._height * 2; y+= MainWorld.GRID_SIZE){
+            for(let y = 0; y < this.gameHeight * 2; y+= MainWorld.GRID_SIZE){
                 let cell: Noise_Map_Cell = {
                     x, y,
                     value: (n.perlin2(x / 100, y / 100) * 100)

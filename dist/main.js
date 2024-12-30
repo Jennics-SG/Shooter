@@ -49578,6 +49578,7 @@ var Player = class _Player extends Container {
     );
     this.addChild(this.gun);
     world.addToProjectiles(this.gun.bulletContainer);
+    this.world = world;
     document.addEventListener("keydown", this._onKeyDown.bind(this));
     document.addEventListener("keyup", this._onKeyUp.bind(this));
     document.addEventListener(
@@ -49641,10 +49642,10 @@ var Player = class _Player extends Container {
       change.x -= this.speed;
     change.normalize();
     let camWithinBounds = {
-      left: world.x - world.width / 4 < 0,
-      right: world.x + world.width / 4 > 0,
-      up: world.y - world.height / 4 < 0,
-      down: world.y + world.height / 4 > 0
+      left: world.x - this.world.gameWidth / 2 < 0,
+      right: world.x + this.world.gameWidth / 2 > 0,
+      up: world.y - this.world.gameHeight / 2 < 0,
+      down: world.y + this.world.gameHeight / 2 > 0
     };
     if (!camWithinBounds.left) this._boundMoveLeft(world, change, deltaTime);
     else if (!camWithinBounds.right) this._boundMoveRight(world, change, deltaTime);
@@ -49746,16 +49747,16 @@ var MainWorld = class _MainWorld extends Container {
       height: h2
     });
     this._framesSinceEnemySpawn = 0;
-    this._width = w2;
-    this._height = h2;
+    this.gameWidth = w2;
+    this.gameHeight = h2;
     this._parent = parent;
     this.ticker = new Ticker();
     this.ticker.autoStart = false;
     this.ticker.stop();
     this._projectiles = new Container();
     this._environment = new Container();
-    this._environment.width = this._width * 2;
-    this._environment.height = this._height * 2;
+    this._environment.width = this.gameWidth * 2;
+    this._environment.height = this.gameHeight * 2;
     this._enemies = new Array();
     this._noiseMap = this._generateNoiseMap(Math.random());
     this._load.bind(this)();
@@ -49766,11 +49767,11 @@ var MainWorld = class _MainWorld extends Container {
   _load() {
     const background = new TilingSprite({
       texture: Assets.get("background"),
-      width: this._width * 2,
-      height: this._height * 2
+      width: this.gameWidth * 2,
+      height: this.gameHeight * 2
     });
-    background.x = this._width / 2;
-    background.y = this._height / 2;
+    background.x = this.gameWidth / 2;
+    background.y = this.gameHeight / 2;
     background.anchor.set(0.5);
     this._environment.addChild(background);
     this._initialiseWorld();
@@ -49807,9 +49808,9 @@ var MainWorld = class _MainWorld extends Container {
   _generateNoiseMap(seed) {
     const n2 = new import_noisejs.default.Noise(seed);
     let g2 = new Array();
-    for (let x2 = 0; x2 < this._width * 2; x2 += _MainWorld.GRID_SIZE) {
+    for (let x2 = 0; x2 < this.gameWidth * 2; x2 += _MainWorld.GRID_SIZE) {
       let r2 = new Array();
-      for (let y2 = 0; y2 < this._height * 2; y2 += _MainWorld.GRID_SIZE) {
+      for (let y2 = 0; y2 < this.gameHeight * 2; y2 += _MainWorld.GRID_SIZE) {
         let cell = {
           x: x2,
           y: y2,
