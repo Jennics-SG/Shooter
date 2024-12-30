@@ -24,6 +24,8 @@ export class Player extends Container{
     }
     private _centerOffset: Point
     
+    public world: MainWorld;
+
     public speed: number = 5;
     public gun: Gun
     public hitbox: HitBox
@@ -64,6 +66,8 @@ export class Player extends Container{
         this.addChild(this.gun);
         world.addToProjectiles(this.gun.bulletContainer)
 
+        this.world = world;
+
         // Event listeners for controls
         document.addEventListener('keydown', this._onKeyDown.bind(this))
         document.addEventListener('keyup', this._onKeyUp.bind(this))
@@ -98,7 +102,7 @@ export class Player extends Container{
         if(change.x > 0 && this.x - this._centerOffset.x <= 0) return
         
         // Is player moving left OR is player moving back to center?
-        if(change.x > 0 || change.x < 0 && this.x  <= world.width / 4)
+        if(change.x > 0 || this.x <= window.innerWidth / 2)
             this.x += (change.x * Player.AXIS_FLIP) * delta;
         else world.x += change.x * delta;
     }
@@ -108,7 +112,7 @@ export class Player extends Container{
         if(change.x < 0 && this.x + this._centerOffset.x >= world.width / 2) return
 
         // Is player moving right OR is player moving back to center?
-        if(change.x < 0 || change.x > 0 && this.x > world.width / 4)
+        if(change.x < 0 || change.x > 0 && this.x >= window.innerWidth / 2)
             this.x += (change.x * Player.AXIS_FLIP) * delta;
         else world.x += change.x * delta;
     }
@@ -118,7 +122,7 @@ export class Player extends Container{
         if(change.y > 0 && this.y - this._centerOffset.y <= 0) return
 
         // Is player moving up OR is player moving back to center?
-        if(change.y > 0 || change.y < 0 && this.y < world.height / 4)
+        if(change.y > 0 || change.y < 0 && this.y <= window.innerHeight / 2)
             this.y += (change.y * Player.AXIS_FLIP) * delta;
         else world.y += change.y * delta;
     }
@@ -128,7 +132,7 @@ export class Player extends Container{
         if(change.y < 0 && this.y + this._centerOffset.y >= world.height / 2) return;
 
         // Is player moving down OR is player moving back to center?
-        if(change.y < 0 || change.y > 0 && this.y > world.height / 4)
+        if(change.y < 0 || change.y > 0 && this.y >= window.innerHeight / 2)
             this.y += (change.y * Player.AXIS_FLIP) * delta
         else world.y += change.y * delta;
     }
@@ -151,10 +155,10 @@ export class Player extends Container{
         
         // Is camera hitting boundary?
         let camWithinBounds: {[key: string]: boolean} = {
-            left: world.x - world.width / 4 < 0,
-            right: world.x + world.width / 4 > 0,
-            up: world.y - world.height / 4 < 0,
-            down: world.y + world.height / 4 > 0 
+            left: world.x - this.world.gameWidth / 2 < 0,
+            right: world.x + this.world.gameWidth / 2 > 0,
+            up: world.y - this.world.gameHeight / 2 < 0,
+            down: world.y + this.world.gameHeight / 2 > 0 
         }
 
         // Horizontal Movement

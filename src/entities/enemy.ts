@@ -23,8 +23,8 @@ export class Enemy extends Container{
 
     private _cursor: Graphics
     private _stopRange: number = 0;
-    private _health: number = 50;
-
+    
+    public health: number = 50;
     public hitbox: HitBox
 
     constructor(x: number, y: number, w: number, h: number, ops?: EnemyOptions){
@@ -40,7 +40,7 @@ export class Enemy extends Container{
         if(ops){
             this._speed = ops.speed ? ops.speed : this._speed;
             this._stopRange = ops.stopRange ? ops.stopRange : this._stopRange;
-            this._health = ops.health ? ops.health : this._health;
+            this.health = ops.health ? ops.health : this.health;
         }
 
         this._cursor = new Graphics();
@@ -89,7 +89,7 @@ export class Enemy extends Container{
     }
 
     public takeDamage(amount: number): void{
-        this._health -= amount;
+        this.health -= amount;
         this.alpha = 0.5
         setTimeout(()=> this.alpha = 1, 100);
     }
@@ -102,14 +102,9 @@ export class Enemy extends Container{
     public onTick(target: Player, deltaTime: number): void{
         if(this.destroyed) return;        
         this.lookAt(target.getGlobalPosition());
-        
-        if(this._health <= 0){
-            this.delete()
-            return;
-        }
 
         // If player within stop range return
         if(this.distanceNumFromPoint(target.getGlobalPosition()) <= this._stopRange) return;
-        // this.moveToPoint(deltaTime);
+        this.moveToPoint(deltaTime);
     }
 }
